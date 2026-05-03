@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Debate Partner</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #2a2a3a;
+    --accent: #e8c547;
+    --accent2: #e84747;
+    --text: #e8e8f0;
+    --muted: #6a6a80;
+    --user-bg: #1a1a2e;
+    --ai-bg: #1a0f0f;
+    --radius: 2px;
+    --green: #47e8a0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ---- SHARED ---- */
+  .hidden { display: none !important; }
+
+  input[type="text"], input[type="email"], input[type="password"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 13px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    border-radius: var(--radius);
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .field-group { margin-bottom: 20px; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    cursor: pointer;
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: #f0d060; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 13px 16px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+  .error-box {
+    background: rgba(232,71,71,0.1);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    padding: 11px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .error-box.show { display: block; }
+
+  .card {
+    border: 1px solid var(--border);
+    padding: 36px;
+    background: var(--surface);
+    position: relative;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 60px; height: 3px;
+    background: var(--accent);
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    width: 100%;
+    max-width: 800px;
+    padding: 36px 24px 0;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo::before { content: '⚖'; font-size: 15px; }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 6vw, 60px);
+    font-weight: 900;
+    line-height: 1;
+    margin-top: 10px;
+    letter-spacing: -1px;
+  }
+  h1 span { color: var(--accent); font-style: italic; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-top: 8px; font-family: 'DM Mono', monospace; }
+
+  /* ---- AUTH SCREEN ---- */
+  #auth-screen {
+    width: 100%;
+    max-width: 480px;
+    padding: 36px 24px;
+    animation: fadeUp 0.4s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .auth-tabs {
+    display: flex;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .auth-tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+  .auth-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .switch-text {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .switch-text a { color: var(--accent); cursor: pointer; text-decoration: none; }
+
+  /* ---- USER BAR ---- */
+  .user-bar {
+    width: 100%;
+    max-width: 800px;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+  }
+  .user-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+  .logout-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .logout-btn:hover { color: var(--accent2); }
+
+  /* ---- SETUP SCREEN ---- */
+  #setup-screen {
+    width: 100%;
+    max-width: 800px;
+    padding: 24px 24px;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .side-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+  .side-btn {
+    padding: 16px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .side-btn span { display: block; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 400; }
+  .side-btn:hover { border-color: var(--accent); }
+  .side-btn.active[data-side="FOR"] { border-color: var(--accent); background: rgba(232,197,71,0.08); }
+  .side-btn.active[data-side="AGAINST"] { border-color: var(--accent2); background: rgba(232,71,71,0.08); }
+
+  /* ---- DEBATE SCREEN ---- */
+  #debate-screen {
+    width: 100%;
+    max-width: 800px;
+    padding: 0 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .debate-meta {
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    background: var(--surface);
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .debate-topic { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; flex: 1; }
+  .sides-display { display: flex; gap: 8px; align-items: center; font-family: 'DM Mono', monospace; font-size: 11px; }
+  .side-tag { padding: 4px 10px; border: 1px solid; letter-spacing: 1px; text-transform: uppercase; }
+  .side-tag.user { border-color: var(--accent); color: var(--accent); }
+  .side-tag.ai { border-color: var(--accent2); color: var(--accent2); }
+  .vs { color: var(--muted); }
+
+  #chat-area {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(100vh - 360px);
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+  #chat-area::-webkit-scrollbar { width: 4px; }
+  #chat-area::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .message { padding: 18px 22px; border-bottom: 1px solid var(--border); animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+  .message.user-msg { background: var(--user-bg); }
+  .message.ai-msg { background: var(--ai-bg); }
+  .msg-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .msg-label::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+  .user-label { color: var(--accent); }
+  .user-label::before { background: var(--accent); }
+  .ai-label { color: var(--accent2); }
+  .ai-label::before { background: var(--accent2); }
+  .msg-text { font-size: 15px; line-height: 1.7; }
+
+  .typing { display: none; padding: 18px 22px; background: var(--ai-bg); border-bottom: 1px solid var(--border); }
+  .typing.show { display: block; }
+  .dots { display: flex; gap: 5px; align-items: center; margin-top: 8px; }
+  .dot { width: 6px; height: 6px; background: var(--accent2); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+  .input-area { padding: 16px 0 28px; display: flex; gap: 10px; align-items: flex-end; }
+  textarea {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 13px 15px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    resize: none;
+    min-height: 50px;
+    max-height: 140px;
+    transition: border-color 0.2s;
+    border-radius: var(--radius);
+    line-height: 1.5;
+  }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+  .send-btn { padding: 13px 18px; background: var(--accent); color: #000; border: none; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; transition: all 0.2s; height: 50px; }
+  .send-btn:hover { background: #f0d060; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Debate Arena</div>
+  <h1>Your <span>AI</span><br>Opponent</h1>
+  <p class="subtitle">// argue your position. it argues back.</p>
+</header>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-tabs">
+    <div class="auth-tab active" onclick="switchTab('login')">Login</div>
+    <div class="auth-tab" onclick="switchTab('register')">Register</div>
+  </div>
+  <div class="card">
+    <div class="error-box" id="auth-error"></div>
+
+    <!-- Login form -->
+    <div id="login-form">
+      <div class="field-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" />
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(e.key==='Enter') doLogin()" />
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Login →</button>
+    </div>
+
+    <!-- Register form -->
+    <div id="register-form" class="hidden">
+      <div class="field-group">
+        <label>Username</label>
+        <input type="text" id="reg-username" placeholder="debater42" />
+      </div>
+      <div class="field-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@example.com" />
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min 6 characters" />
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Create Account →</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER BAR (shown when logged in) -->
+<div id="user-bar" class="user-bar hidden">
+  <span class="user-pill" id="username-display"></span>
+  <button class="logout-btn" onclick="logout()">LOGOUT</button>
+</div>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen" class="hidden">
+  <div class="card">
+    <div class="field-group">
+      <label>Debate Topic</label>
+      <input type="text" id="topic-input" placeholder="e.g. AI will eliminate more jobs than it creates" />
+    </div>
+    <div class="field-group">
+      <label>Your Position</label>
+      <div class="side-picker">
+        <button class="side-btn" data-side="FOR" onclick="selectSide(this)">
+          For <span>In favor of the topic</span>
+        </button>
+        <button class="side-btn" data-side="AGAINST" onclick="selectSide(this)">
+          Against <span>Opposed to the topic</span>
+        </button>
+      </div>
+    </div>
+    <div class="error-box" id="setup-error"></div>
+    <button class="btn-primary" onclick="startDebate()" id="start-btn">Begin the Debate →</button>
+  </div>
+</div>
+
+<!-- DEBATE SCREEN -->
+<div id="debate-screen" class="hidden">
+  <div class="debate-meta">
+    <div class="debate-topic" id="topic-display"></div>
+    <div class="sides-display">
+      <span class="side-tag user" id="user-side-tag"></span>
+      <span class="vs">vs</span>
+      <span class="side-tag ai" id="ai-side-tag"></span>
+    </div>
+  </div>
+  <div id="chat-area">
+    <div class="typing hidden" id="typing">
+      <div class="msg-label ai-label">AI Opponent</div>
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+  </div>
+  <div class="error-box" id="chat-error"></div>
+  <div class="input-area">
+    <textarea id="user-input" placeholder="Make your argument..." rows="1" onkeydown="handleKey(event)"></textarea>
+    <button class="btn-ghost" onclick="resetToSetup()">New</button>
+    <button class="send-btn" onclick="sendMessage()" id="send-btn">Send →</button>
+  </div>
+</div>
+
+<script>
+  let token = localStorage.getItem('debate_token');
+  let username = localStorage.getItem('debate_username');
+  let sessionId = null;
+  let selectedSide = null;
+  let isLoading = false;
+
+  // Init — check if already logged in
+  if (token) showApp();
+
+  function showApp() {
+    hide('auth-screen');
+    show('user-bar');
+    show('setup-screen');
+    document.getElementById('username-display').textContent = username || 'debater';
+  }
+
+  function show(id) { document.getElementById(id).classList.remove('hidden'); }
+  function hide(id) { document.getElementById(id).classList.add('hidden'); }
+  function showErr(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.classList.add('show'); }
+  function hideErr(id) { document.getElementById(id).classList.remove('show'); }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
+    tab === 'login' ? (show('login-form'), hide('register-form')) : (hide('login-form'), show('register-form'));
+    hideErr('auth-error');
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    hideErr('auth-error');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) { showErr('auth-error', data.message || 'Login failed'); return; }
+      saveAuth(data);
+      showApp();
+    } catch (e) { showErr('auth-error', 'Could not connect to server'); }
+  }
+
+  async function doRegister() {
+    const username = document.getElementById('reg-username').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    hideErr('auth-error');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) { showErr('auth-error', data.message || 'Registration failed'); return; }
+      saveAuth(data);
+      showApp();
+    } catch (e) { showErr('auth-error', 'Could not connect to server'); }
+  }
+
+  function saveAuth(data) {
+    token = data.token;
+    username = data.username;
+    localStorage.setItem('debate_token', token);
+    localStorage.setItem('debate_username', username);
+  }
+
+  function logout() {
+    token = null; username = null; sessionId = null;
+    localStorage.removeItem('debate_token');
+    localStorage.removeItem('debate_username');
+    hide('user-bar'); hide('setup-screen'); hide('debate-screen');
+    show('auth-screen');
+  }
+
+  function selectSide(btn) {
+    document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedSide = btn.dataset.side;
+  }
+
+  async function startDebate() {
+    const topic = document.getElementById('topic-input').value.trim();
+    if (!topic) { showErr('setup-error', 'Please enter a debate topic.'); return; }
+    if (!selectedSide) { showErr('setup-error', 'Please choose your position.'); return; }
+    hideErr('setup-error');
+
+    const btn = document.getElementById('start-btn');
+    btn.disabled = true; btn.textContent = 'Preparing your opponent...';
+
+    try {
+      const res = await fetch('/api/debate/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ topic, userSide: selectedSide })
+      });
+      if (res.status === 401) { logout(); return; }
+      if (!res.ok) { const d = await res.json(); showErr('setup-error', d.message || 'Failed to start'); btn.disabled = false; btn.textContent = 'Begin the Debate →'; return; }
+
+      const data = await res.json();
+      sessionId = data.sessionId;
+      document.getElementById('topic-display').textContent = `"${topic}"`;
+      document.getElementById('user-side-tag').textContent = `You: ${data.userSide}`;
+      document.getElementById('ai-side-tag').textContent = `AI: ${data.aiSide}`;
+
+      // Clear previous messages
+      const chat = document.getElementById('chat-area');
+      const typing = document.getElementById('typing');
+      while (chat.firstChild && chat.firstChild !== typing) chat.removeChild(chat.firstChild);
+
+      hide('setup-screen');
+      show('debate-screen');
+      appendMessage('ai', data.reply);
+    } catch (e) {
+      showErr('setup-error', 'Connection error. Is the server running?');
+      btn.disabled = false; btn.textContent = 'Begin the Debate →';
+    }
+  }
+
+  async function sendMessage() {
+    if (isLoading || !sessionId) return;
+    const input = document.getElementById('user-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = ''; input.style.height = 'auto';
+    appendMessage('user', msg);
+    setLoading(true);
+    hideErr('chat-error');
+
+    try {
+      const res = await fetch('/api/debate/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ sessionId, message: msg })
+      });
+      if (res.status === 401) { logout(); return; }
+      if (res.status === 429) { showErr('chat-error', 'Slow down! Rate limit reached.'); setLoading(false); return; }
+      const data = await res.json();
+      appendMessage('ai', data.reply);
+    } catch (e) {
+      showErr('chat-error', 'Failed to get response.');
+    } finally { setLoading(false); }
+  }
+
+  function appendMessage(role, text) {
+    const chat = document.getElementById('chat-area');
+    const typing = document.getElementById('typing');
+    const div = document.createElement('div');
+    div.className = `message ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+    const label = document.createElement('div');
+    label.className = `msg-label ${role === 'user' ? 'user-label' : 'ai-label'}`;
+    label.textContent = role === 'user' ? 'You' : 'AI Opponent';
+    const textEl = document.createElement('div');
+    textEl.className = 'msg-text';
+    textEl.textContent = text;
+    div.appendChild(label); div.appendChild(textEl);
+    chat.insertBefore(div, typing);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function setLoading(v) {
+    isLoading = v;
+    document.getElementById('typing').classList.toggle('show', v);
+    document.getElementById('send-btn').disabled = v;
+    if (v) document.getElementById('chat-area').scrollTop = 9999;
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    setTimeout(() => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px'; }, 0);
+  }
+
+  function resetToSetup() {
+    if (sessionId) {
+      fetch(`/api/debate/session/${sessionId}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+      sessionId = null;
+    }
+    hide('debate-screen'); show('setup-screen');
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('start-btn').textContent = 'Begin the Debate →';
+    document.getElementById('topic-input').value = '';
+    selectedSide = null;
+    document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('active'));
+  }
+</script>
+</body>
+</html>
