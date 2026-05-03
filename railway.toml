@@ -3,5 +3,4 @@ builder = "dockerfile"
 
 [deploy]
 startCommand = "java -jar app.jar"
-healthcheckPath = "/api/auth/health"
 restartPolicyType = "on_failure"
